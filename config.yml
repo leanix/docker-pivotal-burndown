@@ -1,0 +1,8 @@
+pivotalapikey: 80cc96e7285c0dc6b9539de31586bf13
+pivotalprojectid: 769849
+
+logging:
+
+  # The default level of all loggers. Can be OFF, ERROR, WARN, INFO, DEBUG, TRACE, or ALL.
+  level: INFO
+
