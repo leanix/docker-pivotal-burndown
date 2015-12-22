@@ -1,6 +1,6 @@
-# Burndown charts for pivotaltracker projects
+# Burndown charts for Pivotal Tracker projects
 
-This app allows to create burndown charts for iterations in Pivotal.
+This app allows to create burndown charts for iterations in Pivotal Tracker.
 
 The app can create charts in two ways. One way is to create a chart image, 
 the second way is pushing the data to a geckoboard highcharts widget.
@@ -15,10 +15,10 @@ In order to run the app you need to provide the neccessary credentials via syste
 ## Available Parameters:
 
 ### pivotal.projectId
-This is the ID of the pivotaltracker project to get the burndown chart for. 
+This is the ID of the Pivotal Tracker project to get the burndown chart for. 
 
 #### pivotal.apiKey
-The API-Key to access pivotaltracker via the REST-API
+The API-Key to access Pivotal Tracker via the REST-API
 
 #### geckoboard.apiKey (optional)
 The API-Key to access your geckoboard
@@ -30,7 +30,7 @@ The Key of the widget which should display the data.
 The Path where the burndown chart image should be stored.
 
 #### iteration (optional)
-The iteration number in pivotal. If left empty the current iteration is taken.
+The iteration number in Pivotal Tracker. If left empty the current iteration is taken.
 
 ## Usage
 
