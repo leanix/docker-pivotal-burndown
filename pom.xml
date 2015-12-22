@@ -21,11 +21,36 @@
             <artifactId>dropwizard-guice</artifactId>
             <version>0.8.4.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.5</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-joda</artifactId>
+            <version>2.7.0-rc2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jdk8</artifactId>
+            <version>2.5.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>2.7.0-rc2</version>
+        </dependency>
+        <dependency>
+            <groupId>jfree</groupId>
+            <artifactId>jfreechart</artifactId>
+            <version>1.0.13</version>
+        </dependency>
     </dependencies>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
 <build>
 <plugins>
@@ -60,6 +85,48 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+    <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>1.4.0</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <executable>maven</executable>
+          <mainClass>net.leanix.pivotal.burndown.App</mainClass>
+          <systemProperties>
+            <systemProperty>
+              <key>pivotal.projectId</key>
+              <value>${pivotal.projectId}</value>
+            </systemProperty>
+            <systemProperty>
+              <key>pivotal.apiKey</key>
+              <value>${pivotal.apiKey}</value>
+            </systemProperty>
+            <systemProperty>
+              <key>geckoboard.apiKey</key>
+              <value>${geckoboard.apiKey}</value>
+            </systemProperty>
+            <systemProperty>
+              <key>geckoboard.widgetKey</key>
+              <value>${geckoboard.widgetKey}</value>
+            </systemProperty>
+            <systemProperty>
+              <key>imageTargetPath</key>
+              <value>${imageTargetPath}</value>
+            </systemProperty>
+            <systemProperty>
+              <key>iteration</key>
+              <value>${iteration}</value>
+            </systemProperty>
+          </systemProperties>
+        </configuration>
       </plugin>
 </plugins>
 </build>

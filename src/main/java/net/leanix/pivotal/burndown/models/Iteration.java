@@ -1,7 +1,7 @@
 package net.leanix.pivotal.burndown.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
 
 /**
  *
@@ -18,8 +18,8 @@ public class Iteration {
     @JsonProperty(value = "team_strength")
     private int teamStrength;
 
-    private DateTime start;
-    private DateTime finish;
+    private ZonedDateTime start;
+    private ZonedDateTime finish;
     private String kind;
 
     public int getNumber() {
@@ -54,19 +54,19 @@ public class Iteration {
         this.teamStrength = teamStrength;
     }
 
-    public DateTime getStart() {
+    public ZonedDateTime getStart() {
         return start;
     }
 
-    public void setStart(DateTime start) {
+    public void setStart(ZonedDateTime start) {
         this.start = start;
     }
 
-    public DateTime getFinish() {
+    public ZonedDateTime getFinish() {
         return finish;
     }
 
-    public void setFinish(DateTime finish) {
+    public void setFinish(ZonedDateTime finish) {
         this.finish = finish;
     }
 

@@ -1,9 +1,0 @@
-net/leanix/pivotal/burndown/api/JsonUtil.class
-net/leanix/pivotal/burndown/api/ApiException.class
-net/leanix/pivotal/burndown/api/ApiClient$1.class
-net/leanix/pivotal/burndown/AppConfiguration.class
-net/leanix/pivotal/burndown/models/Iteration.class
-net/leanix/pivotal/burndown/App.class
-net/leanix/pivotal/burndown/BusinessLogic.class
-net/leanix/pivotal/burndown/AppModule.class
-net/leanix/pivotal/burndown/api/ApiClient.class

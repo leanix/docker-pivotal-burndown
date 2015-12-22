@@ -1,6 +1,5 @@
 package net.leanix.pivotal.burndown;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import net.leanix.dropkit.DropkitConfiguration;
 
 /**
@@ -9,29 +8,31 @@ import net.leanix.dropkit.DropkitConfiguration;
  */
 public class AppConfiguration extends DropkitConfiguration {
 
-    @JsonProperty("pivotalapikey")
-    private String pivotalApiKey;
-
-    @JsonProperty("pivotalprojectid")
-    private String pivotalProjectId;
-
     public String getPivotalUrl() {
         return "https://www.pivotaltracker.com/services/v5/";
     }
 
     public String getPivotalApiKey() {
-        return pivotalApiKey;
-    }
-
-    public void setPivotalApiKey(String pivotalApiKey) {
-        this.pivotalApiKey = pivotalApiKey;
+        return System.getProperty("pivotal.apiKey");
     }
 
     public String getPivotalProjectId() {
-        return pivotalProjectId;
+        return System.getProperty("pivotal.projectId");
     }
 
-    public void setPivotalProjectId(String pivotalProjectId) {
-        this.pivotalProjectId = pivotalProjectId;
+    public String getGeckoboardApiKey() {
+        return System.getProperty("geckoboard.apiKey");
+    }
+
+    public String getGeckoboardWidgetKey() {
+        return System.getProperty("geckoboard.widgetKey");
+    }
+
+    public String getTargetPath() {
+        return System.getProperty("imageTargetPath");
+    }
+
+    public String getIteration() {
+        return System.getProperty("iteration");
     }
 }
