@@ -77,14 +77,14 @@ public class BusinessLogic {
 
         if (apiKey != null && widgetKey != null) {
 //            pushDataToGeckoBoard(pointMapping, apiKey, widgetKey);
-//            pushDataToGeckoBoardAsHighChart(pointMapping, apiKey, widgetKey);
+            pushDataToGeckoBoardAsHighChart(pointMapping, apiKey, widgetKey);
         }
     }
 
     private Iteration getCurrentIteration() throws ApiException {
         ApiClient apiClient = new ApiClient();
         apiClient.setBasePath("https://www.pivotaltracker.com/services/v5/");
-        apiClient.addDefaultHeader("X-TrackerToken", "80cc96e7285c0dc6b9539de31586bf13");
+        apiClient.addDefaultHeader("X-TrackerToken", configuration.getPivotalApiKey());
 
         ClientResponse iterationResponse = apiClient.invokeApiGetCall("projects/" + projectId + "/iterations?scope=current");
         List<Iteration> iterations = (List<Iteration>) apiClient.deserialize((String) iterationResponse.getEntity(String.class), "Array", Iteration.class);
@@ -187,7 +187,7 @@ public class BusinessLogic {
 
         ApiClient apiClient = new ApiClient();
         apiClient.setBasePath("https://push.geckoboard.com/v1/");
-        ClientResponse response = apiClient.invokeApiPostCall("send/41033-205dcc13-e2b8-45f2-bcf0-ebb427dca50b", sb.toString());
+        ClientResponse response = apiClient.invokeApiPostCall("send/" + configuration.getGeckoboardWidgetKey(), sb.toString());
     }
 
     private void pushDataToGeckoBoardAsHighChart(ArrayList<HashMap<String, String>> pointMapping, String apiKey, String widgetId) throws ApiException {
@@ -195,10 +195,10 @@ public class BusinessLogic {
                 + "\"api_key\": \"").append(apiKey).append("\","
                         + "\"data\": {"
                         + "\"highchart\": \"{");
-        StringBuilder highChart = new StringBuilder("title: {\n"
-                + "            \\\"text\": \\\"Burndown Chart\\\"\n"
-                + "        },\n"
-                + "        \\\"xAxis\\\": {\n");
+        StringBuilder highChart = new StringBuilder("title: {"
+                + "text: \\\"Burndown Chart\\\""
+                + "},"
+                + "xAxis:{");
 
         StringBuilder burnDownValues = new StringBuilder();
         StringBuilder acceptedPointValues = new StringBuilder();
@@ -215,29 +215,29 @@ public class BusinessLogic {
 
             burnDownValues.append(point.get("total_unfinished_points"));
             acceptedPointValues.append(point.get("points_accepted"));
-            axisDescription.append("\"").append(point.get("formatted_date")).append("\"");
+            axisDescription.append("\\\"").append(point.get("formatted_date")).append("\\\"");
             firstRow = false;
         }
-        highChart.append("\\\"categories\\\": [").append(axisDescription).append("]");
+        highChart.append("categories:[").append(axisDescription).append("]");
         highChart.append("},"
-                + "\\\"series\\\": [{"
-                + "\\\"type\\\": \\\"column\\\","
-                + "\\\"name\\\": \\\"Accepted Points\\\",");
-        highChart.append("\\\"data\\\": [").append(acceptedPointValues).append("]"
+                + "series:[{"
+                + "type: \\\"column\\\","
+                + "name: \\\"Accepted Points\\\",");
+        highChart.append("data: [").append(acceptedPointValues).append("]"
                 + "},");
-        highChart.append("{\\\"type\\\": \\\"spline\\\","
-                + "\\\"name\\\": \\\"Burndown\\\",\n"
-                + "\\\"data\\\": [").append(burnDownValues).append("],"
-                        + "\\\"marker\\\": {"
-                        + "\\\"lineWidth\\\": 2,"
-                        + "\\\"lineColor\\\": Highcharts.getOptions().colors[3],"
-                        + "\\\"fillColor\\\": \\\"white\\\""
+        highChart.append("{type: \\\"spline\\\","
+                + "name: \\\"Burndown\\\","
+                + "data: [").append(burnDownValues).append("],"
+                        + "marker: {"
+                        + "lineWidth: 2,"
+                        + "lineColor: Highcharts.getOptions().colors[3],"
+                        + "fillColor: \\\"white\\\""
                         + "}"
                         + "}"
                 );
-        highChart.append("}");
+        highChart.append("]}");
 
-        sb.append(highChart.toString()).append("\\\"}}");
+        sb.append(highChart.toString()).append("\"}}");
 
         ApiClient apiClient = new ApiClient();
         apiClient.setBasePath("https://push.geckoboard.com/v1/");

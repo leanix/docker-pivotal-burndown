@@ -63,5 +63,7 @@ replacing 123 with the desired iteration number.
 ## Links:
 
 Pivotal Tracker: https://www.pivotaltracker.com
+
 Geckoboard: https://www.geckoboard.com
+
 Highcharts: http://www.highcharts.com/
