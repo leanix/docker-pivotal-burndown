@@ -1,6 +1,6 @@
 # Burndown charts for Pivotal Tracker projects
 
-This app allows to create burndown charts for iterations in Pivotal Tracker.
+This app allows to create burndown charts for iterations in [Pivotal Tracker](http://www.pivotaltracker.com/).
 
 The app can create charts in two ways. One way is to create a chart image, 
 the second way is pushing the data to a geckoboard highcharts widget.
