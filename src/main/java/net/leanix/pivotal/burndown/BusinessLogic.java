@@ -1,7 +1,5 @@
 package net.leanix.pivotal.burndown;
 
-import com.google.inject.Inject;
-import com.sun.jersey.api.client.ClientResponse;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -11,6 +9,9 @@ import java.io.InputStream;
 import java.text.Format;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -20,6 +21,7 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import net.leanix.pivotal.burndown.api.ApiClient;
 import net.leanix.pivotal.burndown.api.ApiException;
+import net.leanix.pivotal.burndown.dao.PivotalTrackerDao;
 import net.leanix.pivotal.burndown.models.Iteration;
 import net.leanix.pivotal.burndown.models.IterationHistory;
 import org.jfree.chart.JFreeChart;
@@ -47,23 +49,16 @@ public class BusinessLogic {
      *
      * @throws ApiException
      */
-    public void calculateBurndown() throws ApiException {
+    public void calculateBurndown() throws ApiException, Exception {
         Iteration iteration;
 
         if (AppConfiguration.getIteration().length() > 0) {
-            iteration = new Iteration();
-            iteration.setNumber(Integer.valueOf(AppConfiguration.getIteration()));
+            iteration = PivotalTrackerDao.getIterationByNumber(AppConfiguration.getIteration(), projectId);
         } else {
-            iteration = getCurrentIteration();
+            iteration = PivotalTrackerDao.getCurrentIteration(projectId);
         }
 
-        ApiClient apiClient = new ApiClient();
-        apiClient.setBasePath(AppConfiguration.getPivotalUrl());
-        apiClient.addDefaultHeader("X-TrackerToken", AppConfiguration.getPivotalApiKey());
-
-        ClientResponse historyResponse = apiClient.invokeApiGetCall("projects/" + projectId + "/history/iterations/" + iteration.getNumber() + "/days");
-        IterationHistory history = historyResponse.getEntity(IterationHistory.class);
-        ArrayList<HashMap<String, String>> pointMapping = getPointMapping(history);
+        ArrayList<HashMap<String, String>> pointMapping = getPointMapping(iteration);
 
         if (AppConfiguration.getTargetPath().length() > 0) {
             try {
@@ -74,33 +69,7 @@ public class BusinessLogic {
             }
         }
 
-        String apiKey = AppConfiguration.getGeckoboardApiKey();
-        String widgetKey = AppConfiguration.getGeckoboardWidgetKey();
-
-        if (apiKey != null && widgetKey != null) {
-            pushDataToGeckoBoardAsHighChart(pointMapping, apiKey, widgetKey);
-        }
-    }
-
-    /**
-     * Retrieves the current iteration from Pivotal Tracker.
-     *
-     * @return the found iteration
-     *
-     * @throws ApiException
-     */
-    private Iteration getCurrentIteration() throws ApiException {
-        ApiClient apiClient = new ApiClient();
-        apiClient.setBasePath("https://www.pivotaltracker.com/services/v5/");
-        apiClient.addDefaultHeader("X-TrackerToken", AppConfiguration.getPivotalApiKey());
-
-        ClientResponse iterationResponse = apiClient.invokeApiGetCall("projects/" + projectId + "/iterations?scope=current");
-        List<Iteration> iterations;
-        iterations = (List<Iteration>) ApiClient.deserialize((String) iterationResponse.getEntity(String.class), "Array", Iteration.class);
-
-        Iteration iteration = iterations.get(0);
-
-        return iteration;
+        pushDataToGeckoBoardAsHighChart(pointMapping, iteration);
     }
 
     /**
@@ -112,7 +81,9 @@ public class BusinessLogic {
      * @return the mapped data points having three elements per data point,
      * points_accepted, formatted_date and date
      */
-    private ArrayList<HashMap<String, String>> getPointMapping(IterationHistory history) {
+    private ArrayList<HashMap<String, String>> getPointMapping(Iteration iteration) throws ApiException {
+        IterationHistory history = PivotalTrackerDao.getIterationHistory(projectId, iteration);
+
         ArrayList<String> header = history.getHeader();
         ArrayList<ArrayList<String>> data = history.getData();
 
@@ -128,10 +99,8 @@ public class BusinessLogic {
                     case "points_rejected": // The fall through is intended
                     case "points_planned": // The fall through is intended
                     case "points_unstarted":
-                        // The fall through is intended
                         unfinishedPoints += Math.round(Float.parseFloat(currentDataPoint.get(i)));
                     case "points_accepted":
-                        // The fall through is intended
                         Integer acceptedPoints = Math.round(Float.parseFloat(currentDataPoint.get(i)));
                         dataMapping.put(header.get(i), acceptedPoints.toString());
                         break;
@@ -201,7 +170,14 @@ public class BusinessLogic {
      * @param The ID of the highcharts widget
      * @throws ApiException
      */
-    private void pushDataToGeckoBoardAsHighChart(ArrayList<HashMap<String, String>> pointMapping, String apiKey, String widgetId) throws ApiException {
+    private void pushDataToGeckoBoardAsHighChart(ArrayList<HashMap<String, String>> pointMapping, Iteration iteration) throws ApiException {
+        String apiKey = AppConfiguration.getGeckoboardApiKey();
+        String widgetKey = AppConfiguration.getGeckoboardWidgetKey();
+
+        if (apiKey == null || widgetKey == null) {
+            return;
+        }
+
         StringBuilder sb = new StringBuilder("{"
                 + "\"api_key\": \"").append(apiKey).append("\","
                         + "\"data\": {"
@@ -211,32 +187,36 @@ public class BusinessLogic {
                 + "plotOptions: {area: {marker: {enabled: false}}}, "
                 + "credits: { enabled: false}, "
                 + "title: {style: {color: \\\"#b9bbbb\\\"}, text: \\\"\\\"},"
-                + "yAxis: { title: { enabled: false}, endOnTick: false}, legend: { itemStyle: { color: \\\"b9bbbb\\\"}, layout: \\\"vertical\\\", borderWidth: 0, enabled: false}, "
+                + "yAxis: { title: { enabled: false}, endOnTick: false}, legend: { itemStyle: { color: \\\"#c0c0c0\\\"}, borderWidth: 0, enabled: true}, "
         );
+
+        Integer datesToShow = addDateAxisDescription(iteration, highChart);
 
         StringBuilder burnDownValues = new StringBuilder();
         StringBuilder acceptedPointValues = new StringBuilder();
-        StringBuilder axisDescription = new StringBuilder();
 
-        boolean firstRow = true;
+        addSeriesValues(pointMapping, burnDownValues, acceptedPointValues, datesToShow);
 
-        for (HashMap<String, String> point : pointMapping) {
-            if (!firstRow) {
-                burnDownValues.append(",");
-                acceptedPointValues.append(",");
-                axisDescription.append(",");
-            }
+        highChart.append("},");
+        appendSeriesData(highChart, acceptedPointValues, burnDownValues);
 
-            burnDownValues.append(point.get("total_unfinished_points"));
-            acceptedPointValues.append(point.get("points_accepted"));
-            axisDescription.append("\\\"").append(point.get("formatted_date")).append("\\\"");
-            firstRow = false;
-        }
-        highChart.append("xAxis: { categories:[").append(axisDescription).append("]");
-        highChart.append("},"
-                + "series:[");
+        sb.append(highChart.toString()).append("\"}}");
 
+        ApiClient apiClient = new ApiClient();
+        apiClient.setBasePath("https://push.geckoboard.com/v1/");
+        apiClient.invokeApiPostCall("send/" + widgetKey, sb.toString());
+    }
+
+    /**
+     * Appends the series data to the POST body.
+     *
+     * @param the POST body
+     * @param the values for the accepted points
+     * @param the values for the burndown chart
+     */
+    private void appendSeriesData(StringBuilder highChart, StringBuilder acceptedPointValues, StringBuilder burnDownValues) {
         String displayType = AppConfiguration.getDisplayType();
+        highChart.append("series:[");
         if (displayType.equals("accepted_points") || displayType.equals("both")) {
             highChart.append("{type: \\\"column\\\",name: \\\"Accepted Points\\\",");
             highChart.append("data: [").append(acceptedPointValues).append("]}");
@@ -249,16 +229,80 @@ public class BusinessLogic {
         if (displayType.equals("burndown") || displayType.equals("both")) {
             highChart.append("{name: \\\"Burndown\\\", type: \\\"area\\\", color: \\\"#D11111\\\", "
                     + "data: [").append(burnDownValues).append("],"
-                            + "marker: {lineWidth: 2}"
+                            + "marker: {lineWidth: 0}"
                             + "}"
                     );
         }
         highChart.append("]}");
+    }
 
-        sb.append(highChart.toString()).append("\"}}");
+    /**
+     * Adds the valuse for each series.
+     *
+     * If not enough data for the serieses exist the values will be filled with
+     * nulls.
+     *
+     * @param the point data to add
+     * @param the string builder instance which represents the burndown values
+     * @param the string builder instance which represents the accepted point
+     * values
+     * @param the number of dates the data points should represent
+     */
+    private void addSeriesValues(ArrayList<HashMap<String, String>> pointMapping, StringBuilder burnDownValues, StringBuilder acceptedPointValues, Integer datesToShow) {
+        boolean firstRow = true;
+        Integer datesShown = 0;
 
-        ApiClient apiClient = new ApiClient();
-        apiClient.setBasePath("https://push.geckoboard.com/v1/");
-        apiClient.invokeApiPostCall("send/" + widgetId, sb.toString());
+        for (HashMap<String, String> point : pointMapping) {
+            if (!firstRow) {
+                burnDownValues.append(",");
+                acceptedPointValues.append(",");
+            }
+
+            burnDownValues.append(point.get("total_unfinished_points"));
+            acceptedPointValues.append(point.get("points_accepted"));
+            firstRow = false;
+            datesShown++;
+        }
+
+        if (datesToShow > datesShown) {
+            for (int i = 0; i < (datesToShow - datesShown); i++) {
+                burnDownValues.append(",").append("null");
+                acceptedPointValues.append(",").append("null");
+            }
+        }
+    }
+
+    /**
+     * Adds the description labels for the X-Axis.
+     *
+     * @param the iteration to add the axis data for
+     * @param the POST data the axis description should be added to
+     *
+     * @return the numnber of dates set for the description
+     */
+    private Integer addDateAxisDescription(Iteration iteration, StringBuilder highChart) {
+        StringBuilder axisDescription = new StringBuilder();
+
+        ZonedDateTime start = iteration.getStart().withZoneSameInstant(ZoneId.of("CET"));
+        ZonedDateTime end = iteration.getFinish().withZoneSameInstant(ZoneId.of("CET"));
+        List<String> dateList = new ArrayList<>();
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd.MM");
+
+        while (!start.plusDays(1).isAfter(end)) {
+            dateList.add(start.format(dateFormatter));
+            start = start.plusDays(1);
+        }
+
+        dateList.stream().forEach((currentDate) -> {
+            if (axisDescription.length() > 0) {
+                axisDescription.append(",");
+            }
+
+            axisDescription.append("\\\"").append(currentDate).append("\\\"");
+        });
+
+        highChart.append("xAxis: { categories:[").append(axisDescription).append("], minTickInterval: 2");
+
+        return dateList.size();
     }
 }
