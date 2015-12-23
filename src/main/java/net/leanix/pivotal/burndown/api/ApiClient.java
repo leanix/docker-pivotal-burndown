@@ -57,9 +57,9 @@ public class ApiClient {
         WebResource resource = client.resource(host + path);
         WebResource.Builder builder = resource.getRequestBuilder();
 
-        for (String key : defaultHeaderMap.keySet()) {
+        defaultHeaderMap.keySet().stream().forEach((key) -> {
             builder.header(key, defaultHeaderMap.get(key));
-        }
+        });
 
         ClientResponse response = null;
 

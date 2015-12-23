@@ -22,7 +22,6 @@ import net.leanix.pivotal.burndown.api.ApiClient;
 import net.leanix.pivotal.burndown.api.ApiException;
 import net.leanix.pivotal.burndown.models.Iteration;
 import net.leanix.pivotal.burndown.models.IterationHistory;
-import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
 
 /**
@@ -76,7 +75,6 @@ public class BusinessLogic {
         String widgetKey = configuration.getGeckoboardWidgetKey();
 
         if (apiKey != null && widgetKey != null) {
-//            pushDataToGeckoBoard(pointMapping, apiKey, widgetKey);
             pushDataToGeckoBoardAsHighChart(pointMapping, apiKey, widgetKey);
         }
     }
@@ -87,7 +85,8 @@ public class BusinessLogic {
         apiClient.addDefaultHeader("X-TrackerToken", configuration.getPivotalApiKey());
 
         ClientResponse iterationResponse = apiClient.invokeApiGetCall("projects/" + projectId + "/iterations?scope=current");
-        List<Iteration> iterations = (List<Iteration>) apiClient.deserialize((String) iterationResponse.getEntity(String.class), "Array", Iteration.class);
+        List<Iteration> iterations;
+        iterations = (List<Iteration>) ApiClient.deserialize((String) iterationResponse.getEntity(String.class), "Array", Iteration.class);
 
         Iteration iteration = iterations.get(0);
 
@@ -99,7 +98,7 @@ public class BusinessLogic {
         ArrayList<ArrayList<String>> data = history.getData();
 
         ArrayList<HashMap<String, String>> result = new ArrayList<>();
-        for (int j = 0; j < data.size(); j++) {
+        for (ArrayList<String> currentDataPoint : data) {
             HashMap<String, String> dataMapping = new HashMap<>();
             Integer unfinishedPoints = 0;
             for (int i = 0; i < header.size(); i++) {
@@ -109,19 +108,20 @@ public class BusinessLogic {
                     case "points_started": // The fall through is intended
                     case "points_rejected": // The fall through is intended
                     case "points_planned": // The fall through is intended
-                    case "points_unstarted": // The fall through is intended
-                        unfinishedPoints += Math.round(Float.parseFloat(data.get(j).get(i)));
-                    case "points_accepted": // The fall through is intended
-                        Integer acceptedPoints = Math.round(Float.parseFloat(data.get(j).get(i)));
+                    case "points_unstarted":
+                        // The fall through is intended
+                        unfinishedPoints += Math.round(Float.parseFloat(currentDataPoint.get(i)));
+                    case "points_accepted":
+                        // The fall through is intended
+                        Integer acceptedPoints = Math.round(Float.parseFloat(currentDataPoint.get(i)));
                         dataMapping.put(header.get(i), acceptedPoints.toString());
                         break;
                     case "date":
-                        dataMapping.put("formatted_date", getFormattedDate(data.get(j).get(i)));
-                        dataMapping.put(header.get(i), data.get(j).get(i));
+                        dataMapping.put("formatted_date", getFormattedDate(currentDataPoint.get(i)));
+                        dataMapping.put(header.get(i), currentDataPoint.get(i));
                         break;
                 }
             }
-
             dataMapping.put("total_unfinished_points", unfinishedPoints.toString());
             result.add(dataMapping);
         }
@@ -133,11 +133,8 @@ public class BusinessLogic {
         JFreeChart chart = chartCreator.getChart();
         BufferedImage objBufferedImage = chart.createBufferedImage(877, 620);
         ByteArrayOutputStream bas = new ByteArrayOutputStream();
-        try {
-            ImageIO.write(objBufferedImage, "png", bas);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
+        ImageIO.write(objBufferedImage, "png", bas);
 
         byte[] byteArray = bas.toByteArray();
 
@@ -159,46 +156,18 @@ public class BusinessLogic {
         }
     }
 
-    private void pushDataToGeckoBoard(ArrayList<HashMap<String, String>> pointMapping, String apiKey, String widgetId) throws ApiException {
-        StringBuilder sb = new StringBuilder("{"
-                + "\"api_key\": \"").append(apiKey).append("\","
-                        + "\"data\": {"
-                        + "\"x_axis\": { \"type\": \"datetime\"},\"series\": [");
-
-        StringBuilder burnDownValues = new StringBuilder();
-        StringBuilder acceptedPointValues = new StringBuilder();
-
-        boolean firstRow = true;
-
-        for (HashMap<String, String> point : pointMapping) {
-            if (!firstRow) {
-                burnDownValues.append(",");
-                acceptedPointValues.append(",");
-            }
-
-            burnDownValues.append("[\"").append(point.get("date")).append("\",").append(point.get("total_unfinished_points")).append("]");
-            acceptedPointValues.append("[\"").append(point.get("date")).append("\",").append(point.get("points_accepted")).append("]");
-            firstRow = false;
-        }
-
-//        sb.append("{ \"name\": \"Accepted Points\", \"data\": [").append(acceptedPointValues.toString()).append("]},");
-        sb.append("{ \"name\": \"Burndown\", \"data\": [").append(burnDownValues.toString()).append("]}");
-        sb.append("]}}");
-
-        ApiClient apiClient = new ApiClient();
-        apiClient.setBasePath("https://push.geckoboard.com/v1/");
-        ClientResponse response = apiClient.invokeApiPostCall("send/" + configuration.getGeckoboardWidgetKey(), sb.toString());
-    }
-
     private void pushDataToGeckoBoardAsHighChart(ArrayList<HashMap<String, String>> pointMapping, String apiKey, String widgetId) throws ApiException {
         StringBuilder sb = new StringBuilder("{"
                 + "\"api_key\": \"").append(apiKey).append("\","
                         + "\"data\": {"
                         + "\"highchart\": \"{");
-        StringBuilder highChart = new StringBuilder("title: {"
-                + "text: \\\"Burndown Chart\\\""
-                + "},"
-                + "xAxis:{");
+        StringBuilder highChart = new StringBuilder(
+                "chart: {renderTo: \\\"container\\\", type: \\\"area\\\", backgroundColor: \\\"transparent\\\"}, "
+                + "plotOptions: {area: {marker: {enabled: false}}}, "
+                + "credits: { enabled: false}, "
+                + "title: {style: {color: \\\"#b9bbbb\\\"}, text: \\\"\\\"},"
+                + "yAxis: { title: { enabled: false}, endOnTick: false}, legend: { itemStyle: { color: \\\"b9bbbb\\\"}, layout: \\\"vertical\\\", borderWidth: 0, enabled: false}, "
+        );
 
         StringBuilder burnDownValues = new StringBuilder();
         StringBuilder acceptedPointValues = new StringBuilder();
@@ -218,21 +187,15 @@ public class BusinessLogic {
             axisDescription.append("\\\"").append(point.get("formatted_date")).append("\\\"");
             firstRow = false;
         }
-        highChart.append("categories:[").append(axisDescription).append("]");
+        highChart.append("xAxis: { categories:[").append(axisDescription).append("]");
         highChart.append("},"
-                + "series:[{"
-                + "type: \\\"column\\\","
-                + "name: \\\"Accepted Points\\\",");
+                + "series:[{type: \\\"column\\\",name: \\\"Accepted Points\\\",");
         highChart.append("data: [").append(acceptedPointValues).append("]"
                 + "},");
-        highChart.append("{type: \\\"spline\\\","
-                + "name: \\\"Burndown\\\","
+
+        highChart.append("{name: \\\"Burndown\\\", type: \\\"area\\\", color: \\\"#D11111\\\", "
                 + "data: [").append(burnDownValues).append("],"
-                        + "marker: {"
-                        + "lineWidth: 2,"
-                        + "lineColor: Highcharts.getOptions().colors[3],"
-                        + "fillColor: \\\"white\\\""
-                        + "}"
+                        + "marker: {lineWidth: 2}"
                         + "}"
                 );
         highChart.append("]}");
@@ -241,6 +204,6 @@ public class BusinessLogic {
 
         ApiClient apiClient = new ApiClient();
         apiClient.setBasePath("https://push.geckoboard.com/v1/");
-        ClientResponse response = apiClient.invokeApiPostCall("send/41033-205dcc13-e2b8-45f2-bcf0-ebb427dca50b", sb.toString());
+        apiClient.invokeApiPostCall("send/" + configuration.getGeckoboardWidgetKey(), sb.toString());
     }
 }
