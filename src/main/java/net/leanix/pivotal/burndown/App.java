@@ -8,9 +8,7 @@ package net.leanix.pivotal.burndown;
 public class App {
 
     public static void main(String[] args) throws Exception {
-        AppConfiguration configuration = new AppConfiguration();
-
-        BusinessLogic businessLogic = new BusinessLogic(configuration);
+        BusinessLogic businessLogic = new BusinessLogic();
         businessLogic.calculateBurndown();
     }
 }

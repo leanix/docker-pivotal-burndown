@@ -30,39 +30,42 @@ import org.jfree.chart.JFreeChart;
  */
 public class BusinessLogic {
 
-    private final AppConfiguration configuration;
     private final String projectId;
 
-    @Inject
-    public BusinessLogic(AppConfiguration configuration) throws Exception {
-        this.configuration = configuration;
+    public BusinessLogic() throws Exception {
 
-        projectId = this.configuration.getPivotalProjectId();
+        projectId = AppConfiguration.getPivotalProjectId();
 
         if (projectId == null || projectId.length() < 1) {
             throw new Exception("You need to provide a project ID");
         }
     }
 
+    /**
+     * Calculates the burndown diagramm calls the functions to create the chart
+     * and/or the image.
+     *
+     * @throws ApiException
+     */
     public void calculateBurndown() throws ApiException {
         Iteration iteration;
 
-        if (configuration.getIteration().length() > 0) {
+        if (AppConfiguration.getIteration().length() > 0) {
             iteration = new Iteration();
-            iteration.setNumber(Integer.valueOf(configuration.getIteration()));
+            iteration.setNumber(Integer.valueOf(AppConfiguration.getIteration()));
         } else {
             iteration = getCurrentIteration();
         }
 
         ApiClient apiClient = new ApiClient();
-        apiClient.setBasePath(configuration.getPivotalUrl());
-        apiClient.addDefaultHeader("X-TrackerToken", configuration.getPivotalApiKey());
+        apiClient.setBasePath(AppConfiguration.getPivotalUrl());
+        apiClient.addDefaultHeader("X-TrackerToken", AppConfiguration.getPivotalApiKey());
 
         ClientResponse historyResponse = apiClient.invokeApiGetCall("projects/" + projectId + "/history/iterations/" + iteration.getNumber() + "/days");
         IterationHistory history = historyResponse.getEntity(IterationHistory.class);
         ArrayList<HashMap<String, String>> pointMapping = getPointMapping(history);
 
-        if (configuration.getTargetPath().length() > 0) {
+        if (AppConfiguration.getTargetPath().length() > 0) {
             try {
                 ChartCreator chartCreator = new ChartCreator(iteration, pointMapping);
                 createImageFromChart(chartCreator, iteration);
@@ -71,18 +74,25 @@ public class BusinessLogic {
             }
         }
 
-        String apiKey = configuration.getGeckoboardApiKey();
-        String widgetKey = configuration.getGeckoboardWidgetKey();
+        String apiKey = AppConfiguration.getGeckoboardApiKey();
+        String widgetKey = AppConfiguration.getGeckoboardWidgetKey();
 
         if (apiKey != null && widgetKey != null) {
             pushDataToGeckoBoardAsHighChart(pointMapping, apiKey, widgetKey);
         }
     }
 
+    /**
+     * Retrieves the current iteration from Pivotal Tracker.
+     *
+     * @return the found iteration
+     *
+     * @throws ApiException
+     */
     private Iteration getCurrentIteration() throws ApiException {
         ApiClient apiClient = new ApiClient();
         apiClient.setBasePath("https://www.pivotaltracker.com/services/v5/");
-        apiClient.addDefaultHeader("X-TrackerToken", configuration.getPivotalApiKey());
+        apiClient.addDefaultHeader("X-TrackerToken", AppConfiguration.getPivotalApiKey());
 
         ClientResponse iterationResponse = apiClient.invokeApiGetCall("projects/" + projectId + "/iterations?scope=current");
         List<Iteration> iterations;
@@ -93,6 +103,15 @@ public class BusinessLogic {
         return iteration;
     }
 
+    /**
+     * Creates a mapping needed for the burndown chart since Pivotal Tracker
+     * does not return this natively.
+     *
+     * @param the history for the current iteration by days
+     *
+     * @return the mapped data points having three elements per data point,
+     * points_accepted, formatted_date and date
+     */
     private ArrayList<HashMap<String, String>> getPointMapping(IterationHistory history) {
         ArrayList<String> header = history.getHeader();
         ArrayList<ArrayList<String>> data = history.getData();
@@ -129,6 +148,14 @@ public class BusinessLogic {
         return result;
     }
 
+    /**
+     * Creates a png image from the given chart.
+     *
+     * @param the factory with the created chart.
+     * @param the iteration for the given chart
+     *
+     * @throws IOException If file writing or reading fails
+     */
     private void createImageFromChart(ChartCreator chartCreator, Iteration iteration) throws IOException {
         JFreeChart chart = chartCreator.getChart();
         BufferedImage objBufferedImage = chart.createBufferedImage(877, 620);
@@ -140,10 +167,19 @@ public class BusinessLogic {
 
         InputStream in = new ByteArrayInputStream(byteArray);
         BufferedImage image = ImageIO.read(in);
-        File outputfile = new File(configuration.getTargetPath() + "burndown_" + iteration.getNumber() + ".png");
+        File outputfile = new File(AppConfiguration.getTargetPath() + "burndown_" + iteration.getNumber() + ".png");
         ImageIO.write(image, "png", outputfile);
     }
 
+    /**
+     * Formats the date string in format yyyy-mm-dd to a date string in format
+     * dd.mm.
+     *
+     * @param The date string in format yyyy-mm-dd
+     *
+     * @return the formatted date. will be an emnpty string if a parse exception
+     * occurred during date parsing.
+     */
     private String getFormattedDate(String dateString) {
         try {
             SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-mm-dd");
@@ -152,10 +188,19 @@ public class BusinessLogic {
             Format outputFormat = new SimpleDateFormat("dd.mm.");
             return outputFormat.format(date);
         } catch (ParseException ex) {
-            return "NAN";
+            Logger.getLogger(BusinessLogic.class.getName()).log(Level.WARNING, "Date could not be paresed", ex);
+            return "";
         }
     }
 
+    /**
+     * Pushes the given point mapping data to a highcharts widget on Geckoboard.
+     *
+     * @param The data to push
+     * @param The API-Key to access the geckoboard
+     * @param The ID of the highcharts widget
+     * @throws ApiException
+     */
     private void pushDataToGeckoBoardAsHighChart(ArrayList<HashMap<String, String>> pointMapping, String apiKey, String widgetId) throws ApiException {
         StringBuilder sb = new StringBuilder("{"
                 + "\"api_key\": \"").append(apiKey).append("\","
@@ -189,21 +234,31 @@ public class BusinessLogic {
         }
         highChart.append("xAxis: { categories:[").append(axisDescription).append("]");
         highChart.append("},"
-                + "series:[{type: \\\"column\\\",name: \\\"Accepted Points\\\",");
-        highChart.append("data: [").append(acceptedPointValues).append("]"
-                + "},");
+                + "series:[");
 
-        highChart.append("{name: \\\"Burndown\\\", type: \\\"area\\\", color: \\\"#D11111\\\", "
-                + "data: [").append(burnDownValues).append("],"
-                        + "marker: {lineWidth: 2}"
-                        + "}"
-                );
+        String displayType = AppConfiguration.getDisplayType();
+        if (displayType.equals("accepted_points") || displayType.equals("both")) {
+            highChart.append("{type: \\\"column\\\",name: \\\"Accepted Points\\\",");
+            highChart.append("data: [").append(acceptedPointValues).append("]}");
+        }
+
+        if (displayType.equals("both")) {
+            highChart.append(",");
+        }
+
+        if (displayType.equals("burndown") || displayType.equals("both")) {
+            highChart.append("{name: \\\"Burndown\\\", type: \\\"area\\\", color: \\\"#D11111\\\", "
+                    + "data: [").append(burnDownValues).append("],"
+                            + "marker: {lineWidth: 2}"
+                            + "}"
+                    );
+        }
         highChart.append("]}");
 
         sb.append(highChart.toString()).append("\"}}");
 
         ApiClient apiClient = new ApiClient();
         apiClient.setBasePath("https://push.geckoboard.com/v1/");
-        apiClient.invokeApiPostCall("send/" + configuration.getGeckoboardWidgetKey(), sb.toString());
+        apiClient.invokeApiPostCall("send/" + widgetId, sb.toString());
     }
 }

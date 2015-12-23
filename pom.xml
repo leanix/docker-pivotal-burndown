@@ -125,6 +125,10 @@
               <key>iteration</key>
               <value>${iteration}</value>
             </systemProperty>
+            <systemProperty>
+              <key>displayType</key>
+              <value>${displayType}</value>
+            </systemProperty>
           </systemProperties>
         </configuration>
       </plugin>

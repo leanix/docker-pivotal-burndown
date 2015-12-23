@@ -32,6 +32,12 @@ The Path where the burndown chart image should be stored.
 #### iteration (optional)
 The iteration number in Pivotal Tracker. If left empty the current iteration is taken.
 
+#### displayType (optional)
+What should be shown in the created graph. There are three options:
+* burndown: Only show the burndown graph (default option if not set)
+* accepted_points: Only show the accepted points
+* both: Show accepted points and burndown
+
 ## Usage
 
 ### Push to Geckoboard

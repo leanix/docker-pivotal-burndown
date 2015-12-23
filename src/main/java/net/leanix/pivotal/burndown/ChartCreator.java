@@ -19,7 +19,7 @@ import org.jfree.data.category.DefaultCategoryDataset;
  */
 public class ChartCreator {
 
-    private JFreeChart chart;
+    private final JFreeChart chart;
 
     public ChartCreator(Iteration iteration, ArrayList<HashMap<String, String>> data) {
         CategoryDataset dataSet = createDataSet(data);
@@ -49,9 +49,16 @@ public class ChartCreator {
     private CategoryDataset createDataSet(ArrayList<HashMap<String, String>> data) {
         final DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 
+        String displayType = AppConfiguration.getDisplayType();
+
         for (HashMap<String, String> currentPoint : data) {
-            dataset.addValue(Integer.parseInt(currentPoint.get("total_unfinished_points")), "Unfinished Points", currentPoint.get("formatted_date"));
-            dataset.addValue(Integer.parseInt(currentPoint.get("points_accepted")), "Accepted Points", currentPoint.get("formatted_date"));
+            if (displayType.equals("both") || displayType.equals("burndown")) {
+                dataset.addValue(Integer.parseInt(currentPoint.get("total_unfinished_points")), "Unfinished Points", currentPoint.get("formatted_date"));
+            }
+
+            if (displayType.equals("both") || displayType.equals("accepted_points")) {
+                dataset.addValue(Integer.parseInt(currentPoint.get("points_accepted")), "Accepted Points", currentPoint.get("formatted_date"));
+            }
 
         }
 
