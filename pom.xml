@@ -132,6 +132,33 @@
           </systemProperties>
         </configuration>
       </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.6</version>
+        <executions>
+          <execution>
+            <id>default-jar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+            <configuration>
+              <archive>
+                <manifest>
+                  <mainClass>net.leanix.pivotal.burndown.App</mainClass>
+                </manifest>
+              </archive>
+            </configuration>
+          </execution>
+        </executions>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>net.leanix.pivotal.burndown.App</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
 </plugins>
 </build>
     <name>leanix-pivotal-burndown</name>

@@ -1,12 +1,10 @@
 package net.leanix.pivotal.burndown;
 
-import net.leanix.dropkit.DropkitConfiguration;
-
 /**
  * Configuration.
  *
  */
-public class AppConfiguration extends DropkitConfiguration {
+public class AppConfiguration {
 
     public static String getPivotalUrl() {
         return "https://www.pivotaltracker.com/services/v5/";
