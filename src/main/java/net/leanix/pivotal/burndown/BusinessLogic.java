@@ -218,7 +218,7 @@ public class BusinessLogic {
         String displayType = AppConfiguration.getDisplayType();
         highChart.append("series:[");
         if (displayType.equals("accepted_points") || displayType.equals("both")) {
-            highChart.append("{type: \\\"column\\\",name: \\\"Accepted Points\\\",");
+            highChart.append("{type: \\\"column\\\",name: \\\"Accepted Points\\\", color: \\\"#98CB65\\\",");
             highChart.append("data: [").append(acceptedPointValues).append("]}");
         }
 
@@ -227,7 +227,7 @@ public class BusinessLogic {
         }
 
         if (displayType.equals("burndown") || displayType.equals("both")) {
-            highChart.append("{name: \\\"Burndown\\\", type: \\\"area\\\", color: \\\"#D11111\\\", "
+            highChart.append("{name: \\\"Burndown\\\", type: \\\"area\\\", color: \\\"#9CD9E7\\\", "
                     + "data: [").append(burnDownValues).append("],"
                             + "marker: {lineWidth: 0}"
                             + "}"
