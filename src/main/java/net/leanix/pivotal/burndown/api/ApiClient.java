@@ -57,6 +57,10 @@ public class ApiClient {
         WebResource resource = client.resource(host + path);
         WebResource.Builder builder = resource.getRequestBuilder();
 
+        defaultHeaderMap.keySet().stream().forEach((key) -> {
+            builder.header(key, defaultHeaderMap.get(key));
+        });
+
         ClientResponse response = null;
 
         switch (method) {
@@ -64,7 +68,7 @@ public class ApiClient {
                 response = (ClientResponse) builder.get(ClientResponse.class);
                 break;
             case "POST":
-                response = (ClientResponse) builder.type("application/json").post(ClientResponse.class, serialize(body));
+                response = (ClientResponse) builder.type("application/json").post(ClientResponse.class, (body instanceof String) ? body : serialize(body));
                 break;
             case "DELETE":
                 response = (ClientResponse) builder.type("application/json").delete(ClientResponse.class);
@@ -175,6 +179,20 @@ public class ApiClient {
         } catch (IOException e) {
             throw new ApiException(500, e.getMessage());
         }
+    }
+
+    /**
+     * Invokes POST calls to the Confluence REST API.
+     *
+     * @param path the resource path in the confluence API
+     * @param body the object to add to confluence.
+     *
+     * @return the response of the REST API
+     *
+     * @throws ApiException
+     */
+    public ClientResponse invokeApiPostCall(String path, Object body) throws ApiException {
+        return invokeApi(path, "POST", body);
     }
 
 }

@@ -1,37 +1,51 @@
 package net.leanix.pivotal.burndown;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import net.leanix.dropkit.DropkitConfiguration;
-
 /**
  * Configuration.
  *
  */
-public class AppConfiguration extends DropkitConfiguration {
+public class AppConfiguration {
 
-    @JsonProperty("pivotalapikey")
-    private String pivotalApiKey;
-
-    @JsonProperty("pivotalprojectid")
-    private String pivotalProjectId;
-
-    public String getPivotalUrl() {
+    public static String getPivotalUrl() {
         return "https://www.pivotaltracker.com/services/v5/";
     }
 
-    public String getPivotalApiKey() {
-        return pivotalApiKey;
+    public static String getPivotalApiKey() {
+        return System.getProperty("pivotal.apiKey");
     }
 
-    public void setPivotalApiKey(String pivotalApiKey) {
-        this.pivotalApiKey = pivotalApiKey;
+    public static String getPivotalProjectId() {
+        return System.getProperty("pivotal.projectId");
     }
 
-    public String getPivotalProjectId() {
-        return pivotalProjectId;
+    public static String getGeckoboardApiKey() {
+        return System.getProperty("geckoboard.apiKey");
     }
 
-    public void setPivotalProjectId(String pivotalProjectId) {
-        this.pivotalProjectId = pivotalProjectId;
+    public static String getGeckoboardWidgetKey() {
+        return System.getProperty("geckoboard.widgetKey");
+    }
+
+    public static String getTargetPath() {
+        return System.getProperty("imageTargetPath");
+    }
+
+    public static String getIteration() {
+        return System.getProperty("iteration");
+    }
+
+    public static String getDisplayType() {
+        String displayType = System.getProperty("displayType");
+
+        switch (displayType) {
+            case "both":
+                return "both";
+            case "burndown":
+                return "burndown";
+            case "accepted_points":
+                return "accepted_points";
+            default:
+                return "burndown";
+        }
     }
 }
