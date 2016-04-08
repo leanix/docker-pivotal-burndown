@@ -11,31 +11,31 @@ public class AppConfiguration {
     }
 
     public static String getPivotalApiKey() {
-        return System.getProperty("pivotal.apiKey");
+        return (System.getenv("PIVOTAL_API_KEY") == null) ? "" : System.getenv("PIVOTAL_API_KEY");
     }
 
     public static String getPivotalProjectId() {
-        return System.getProperty("pivotal.projectId");
+        return (System.getenv("PIVOTAL_PROJECT_ID") == null) ? "" : System.getenv("PIVOTAL_PROJECT_ID");
     }
 
     public static String getGeckoboardApiKey() {
-        return System.getProperty("geckoboard.apiKey");
+        return (System.getenv("GECKOBOARD_API_KEY") == null) ? "" : System.getenv("GECKOBOARD_API_KEY");
     }
 
     public static String getGeckoboardWidgetKey() {
-        return System.getProperty("geckoboard.widgetKey");
+        return (System.getenv("GECKOBOARD_WIDGET_KEY") == null) ? "" : System.getenv("GECKOBOARD_WIDGET_KEY");
     }
 
     public static String getTargetPath() {
-        return System.getProperty("imageTargetPath");
+        return (System.getenv("IMAGE_TARGET_PATH") == null) ? "" : System.getenv("IMAGE_TARGET_PATH");
     }
 
     public static String getIteration() {
-        return System.getProperty("iteration");
+        return (System.getenv("ITERATION") == null) ? "" : System.getenv("ITERATION");
     }
 
     public static String getDisplayType() {
-        String displayType = System.getProperty("displayType");
+        String displayType = System.getenv("DISPLAY_TYPE");
 
         switch (displayType) {
             case "both":
