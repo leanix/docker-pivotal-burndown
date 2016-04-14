@@ -163,8 +163,7 @@ public class ApiClient {
             } else if ("ArrayWithoutKey".equals(containerType)) {
                 ArrayList<Object> myObjects = JsonUtil.getJsonMapper().readValue(json, new TypeReference<ArrayList<Object>>() {
                 });
-                System.out.println("objects");
-                System.out.println(myObjects);
+
                 return myObjects;
 
             } else if (String.class.equals(cls)) {
