@@ -89,6 +89,10 @@ public class BusinessLogic {
 
         ArrayList<HashMap<String, String>> result = new ArrayList<>();
         for (ArrayList<String> currentDataPoint : data) {
+            if (currentDataPoint.size() < header.size()) {
+                continue;
+            }
+
             HashMap<String, String> dataMapping = new HashMap<>();
             Integer unfinishedPoints = 0;
             for (int i = 0; i < header.size(); i++) {
